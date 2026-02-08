@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Channel Automation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+            padding: 10px;
+        }
+
+        .step::after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            right: -50%;
+            width: 100%;
+            height: 2px;
+            background: #dee2e6;
+            z-index: 1;
+        }
+
+        .step:last-child::after {
+            display: none;
+        }
+
+        .step-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #dee2e6;
+            color: #6c757d;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 5px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .step.active .step-number {
+            background: #667eea;
+            color: white;
+        }
+
+        .step.completed .step-number {
+            background: #28a745;
+            color: white;
+        }
+
+        .step-label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .step.active .step-label {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .step-content {
+            display: none;
+        }
+
+        .step-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .keyword-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .keyword-tag {
+            padding: 8px 15px;
+            background: #e9ecef;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            user-select: none;
+        }
+
+        .keyword-tag:hover {
+            background: #dee2e6;
+        }
+
+        .keyword-tag.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .channels-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .channel-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+
+        .channel-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .channel-info {
+            flex: 1;
+        }
+
+        .channel-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .channel-stats {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .channel-link {
+            padding: 6px 12px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+
+        .channel-link:hover {
+            background: #5568d3;
+        }
+
+        .verified-badge {
+            color: #1da1f2;
+            margin-left: 5px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            margin-right: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #218838;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .range-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .status-box {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: #6c757d;
+        }
+
+        .status-value {
+            color: #333;
+        }
+
+        .copy-btn {
+            padding: 8px 15px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .copy-btn:hover {
+            background: #218838;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .info-box strong {
+            color: #667eea;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Telegram Channel Automation</h1>
+            <p>Реальный парсер английских каналов с автоматизацией</p>
+            <span class="badge">✨ Real Telegram API - Hosted on Render</span>
+        </div>
+
+        <div class="step-indicator">
+            <div class="step active" data-step="1">
+                <div class="step-number">1</div>
+                <div class="step-label">Подключение</div>
+            </div>
+            <div class="step" data-step="2">
+                <div class="step-number">2</div>
+                <div class="step-label">Поиск каналов</div>
+            </div>
+            <div class="step" data-step="3">
+                <div class="step-number">3</div>
+                <div class="step-label">Настройки</div>
+            </div>
+            <div class="step" data-step="4">
+                <div class="step-number">4</div>
+                <div class="step-label">Запуск</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Step 1: Telegram Connection -->
+            <div class="step-content active" id="step1">
+                <h2 style="margin-bottom: 20px;">Шаг 1: Подключение к Telegram</h2>
+                
+                <div class="alert alert-info">
+                    <strong>ℹ️ Получение API credentials:</strong><br>
+                    1. Перейдите на <a href="https://my.telegram.org/auth" target="_blank">my.telegram.org</a><br>
+                    2. Войдите с номером телефона<br>
+                    3. Откройте "API development tools"<br>
+                    4. Создайте приложение и скопируйте API ID и API Hash
+                </div>
+
+                <div class="form-group">
+                    <label>API ID:</label>
+                    <input type="text" id="apiId" placeholder="1234567">
+                </div>
+
+                <div class="form-group">
+                    <label>API Hash:</label>
+                    <input type="text" id="apiHash" placeholder="1234567890abcdef1234567890abcdef">
+                </div>
+
+                <div class="form-group">
+                    <label>Номер телефона:</label>
+                    <input type="tel" id="phoneNumber" placeholder="+1234567890">
+                </div>
+
+                <div id="codeSection" style="display: none;">
+                    <div class="form-group">
+                        <label>Код подтверждения:</label>
+                        <input type="text" id="verificationCode" placeholder="12345">
+                    </div>
+                </div>
+
+                <div id="passwordSection" style="display: none;">
+                    <div class="form-group">
+                        <label>2FA пароль:</label>
+                        <input type="password" id="password2FA" placeholder="Ваш пароль">
+                    </div>
+                </div>
+
+                <button class="btn btn-success" onclick="connectToTelegram()" id="connectBtn">
+                    <span id="connectBtnText">🔗 Подключиться</span>
+                </button>
+
+                <div id="connectionStatus" style="display: none; margin-top: 20px;"></div>
+
+                <div class="button-group">
+                    <div></div>
+                    <button class="btn btn-primary" onclick="nextStep(2)" id="step1Next" disabled>
+                        Далее →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Channel Search -->
+            <div class="step-content" id="step2">
+                <h2 style="margin-bottom: 20px;">Шаг 2: Поиск каналов</h2>
+                
+                <div class="alert alert-success">
+                    <strong>✅ Реальный поиск:</strong> Используется настоящий Telegram API для поиска английских каналов
+                </div>
+
+                <div class="form-group">
+                    <label>Выберите ключевые слова:</label>
+                    <div class="keyword-tags">
+                        <div class="keyword-tag" data-keyword="cars">🚗 Cars</div>
+                        <div class="keyword-tag" data-keyword="motivation">💪 Motivation</div>
+                        <div class="keyword-tag" data-keyword="football">⚽ Football</div>
+                        <div class="keyword-tag" data-keyword="fishing">🎣 Fishing</div>
+                        <div class="keyword-tag" data-keyword="crypto">💰 Crypto</div>
+                        <div class="keyword-tag" data-keyword="technology">💻 Technology</div>
+                        <div class="keyword-tag" data-keyword="travel">✈️ Travel</div>
+                        <div class="keyword-tag" data-keyword="fitness">🏋️ Fitness</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Диапазон участников:</label>
+                    <div class="range-inputs">
+                        <input type="number" id="minSubscribers" placeholder="От (5000)" value="5000">
+                        <input type="number" id="maxSubscribers" placeholder="До (10000)" value="10000">
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="searchChannels()">
+                    <span id="searchBtnText">🔍 Найти реальные каналы</span>
+                </button>
+
+                <div id="channelsResult" style="display: none; margin-top: 30px;">
+                    <h3 style="margin-bottom: 15px;">Найденные каналы: <span id="channelCount">0</span></h3>
+                    <div class="channels-list" id="channelsList"></div>
+                    <button class="copy-btn" onclick="copyAllLinks()">📋 Копировать все ссылки</button>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="prevStep(1)">
+                        ← Назад
+                    </button>
+                    <button class="btn btn-primary" onclick="nextStep(3)" id="step2Next" disabled>
+                        Далее →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: Settings -->
+            <div class="step-content" id="step3">
+                <h2 style="margin-bottom: 20px;">Шаг 3: Настройки</h2>
+
+                <div class="form-group">
+                    <label>Ссылки на каналы (каждая с новой строки):</label>
+                    <textarea id="channelLinks" placeholder="https://t.me/channel1&#10;https://t.me/channel2"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Текст комментария:</label>
+                    <textarea id="commentText" placeholder="Ваш текст комментария"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Интервал (секунды):</label>
+                    <input type="number" id="commentInterval" value="300" min="60">
+                </div>
+
+                <div class="info-box">
+                    <strong>⚠️ Важно:</strong> Минимум 60 секунд. Рекомендуется 180-300 для избежания блокировки.
+                </div>
+
+                <button class="btn btn-success" onclick="subscribeToChannels()">
+                    <span id="subscribeBtnText">✅ Подписаться на каналы</span>
+                </button>
+
+                <div id="subscribeStatus" style="display: none; margin-top: 20px;"></div>
+
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="prevStep(2)">
+                        ← Назад
+                    </button>
+                    <button class="btn btn-primary" onclick="nextStep(4)">
+                        Далее →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 4: Launch -->
+            <div class="step-content" id="step4">
+                <h2 style="margin-bottom: 20px;">Шаг 4: Запуск</h2>
+
+                <div class="status-box">
+                    <div class="status-item">
+                        <span class="status-label">Каналов:</span>
+                        <span class="status-value" id="totalChannels">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Интервал:</span>
+                        <span class="status-value" id="intervalDisplay">0 сек</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Статус:</span>
+                        <span class="status-value" id="automationStatus">Не запущено</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Отправлено:</span>
+                        <span class="status-value" id="commentsSent">0</span>
+                    </div>
+                </div>
+
+                <button class="btn btn-success" onclick="startAutomation()" id="startBtn">
+                    ▶️ Запустить
+                </button>
+                <button class="btn btn-secondary" onclick="stopAutomation()" id="stopBtn" style="display: none; margin-left: 10px;">
+                    ⏸️ Остановить
+                </button>
+
+                <div id="activityLog" style="margin-top: 30px; display: none;">
+                    <h3>Журнал:</h3>
+                    <div class="channels-list" id="logEntries"></div>
+                </div>
+
+                <div class="button-group" style="margin-top: 30px;">
+                    <button class="btn btn-secondary" onclick="prevStep(3)">
+                        ← Назад
+                    </button>
+                    <button class="btn btn-primary" onclick="location.reload()">
+                        🔄 Начать заново
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API URL - will work on same domain when hosted on Render
+        const API_URL = window.location.origin + '/api';
+        
+        let currentStep = 1;
+        let selectedKeywords = [];
+        let foundChannels = [];
+        let credentials = {};
+        let needsCode = false;
+        let needsPassword = false;
+
+        // Keyword selection
+        document.querySelectorAll('.keyword-tag').forEach(tag => {
+            tag.addEventListener('click', function() {
+                this.classList.toggle('active');
+                const keyword = this.dataset.keyword;
+                if (this.classList.contains('active')) {
+                    selectedKeywords.push(keyword);
+                } else {
+                    selectedKeywords = selectedKeywords.filter(k => k !== keyword);
+                }
+            });
+        });
+
+        // Connect to Telegram
+        async function connectToTelegram() {
+            const apiId = document.getElementById('apiId').value.trim();
+            const apiHash = document.getElementById('apiHash').value.trim();
+            const phoneNumber = document.getElementById('phoneNumber').value.trim();
+            const code = document.getElementById('verificationCode').value.trim();
+            const password = document.getElementById('password2FA').value.trim();
+
+            if (!apiId || !apiHash || !phoneNumber) {
+                showAlert('connectionStatus', '❌ Заполните все обязательные поля!', 'danger');
+                return;
+            }
+
+            credentials = { apiId, apiHash, phoneNumber };
+
+            const btn = document.getElementById('connectBtnText');
+            btn.innerHTML = '<span class="loading"></span> Подключение...';
+
+            try {
+                const response = await fetch(`${API_URL}/connect`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiId, apiHash, phoneNumber, code, password })
+                });
+
+                const data = await response.json();
+
+                if (data.needsCode) {
+                    document.getElementById('codeSection').style.display = 'block';
+                    showAlert('connectionStatus', '📱 Код отправлен в Telegram! Введите его выше.', 'info');
+                    btn.textContent = '✅ Подтвердить код';
+                    needsCode = true;
+                } else if (data.needsPassword) {
+                    document.getElementById('passwordSection').style.display = 'block';
+                    showAlert('connectionStatus', '🔐 Требуется 2FA пароль', 'warning');
+                    btn.textContent = '✅ Подтвердить пароль';
+                    needsPassword = true;
+                } else if (data.success) {
+                    showAlert('connectionStatus', `✅ Успешно подключено!<br>Телефон: ${phoneNumber}`, 'success');
+                    btn.textContent = '✅ Подключено';
+                    document.getElementById('step1Next').disabled = false;
+                    document.getElementById('connectBtn').disabled = true;
+                } else {
+                    throw new Error(data.error || 'Ошибка подключения');
+                }
+            } catch (error) {
+                showAlert('connectionStatus', `❌ Ошибка: ${error.message}`, 'danger');
+                btn.textContent = '🔗 Подключиться';
+            }
+        }
+
+        // Search channels
+        async function searchChannels() {
+            if (selectedKeywords.length === 0) {
+                alert('Выберите хотя бы одно ключевое слово!');
+                return;
+            }
+
+            const minSubs = parseInt(document.getElementById('minSubscribers').value) || 5000;
+            const maxSubs = parseInt(document.getElementById('maxSubscribers').value) || 10000;
+
+            const btn = document.getElementById('searchBtnText');
+            btn.innerHTML = '<span class="loading"></span> Поиск через Telegram API...';
+
+            try {
+                const response = await fetch(`${API_URL}/search-channels`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        keywords: selectedKeywords,
+                        minSubscribers: minSubs,
+                        maxSubscribers: maxSubs,
+                        ...credentials
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    foundChannels = data.channels;
+                    displayChannels();
+                    if (foundChannels.length > 0) {
+                        document.getElementById('step2Next').disabled = false;
+                    }
+                } else {
+                    throw new Error(data.error);
+                }
+
+                btn.textContent = '🔍 Найти реальные каналы';
+            } catch (error) {
+                alert(`Ошибка: ${error.message}`);
+                btn.textContent = '🔍 Найти реальные каналы';
+            }
+        }
+
+        // Display channels
+        function displayChannels() {
+            const list = document.getElementById('channelsList');
+            list.innerHTML = '';
+
+            document.getElementById('channelCount').textContent = foundChannels.length;
+
+            if (foundChannels.length === 0) {
+                list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><h3>Каналы не найдены</h3><p>Попробуйте другие критерии</p></div>';
+            } else {
+                foundChannels.forEach(channel => {
+                    const item = document.createElement('div');
+                    item.className = 'channel-item';
+                    const verified = channel.verified ? '<span class="verified-badge">✓</span>' : '';
+                    item.innerHTML = `
+                        <div class="channel-info">
+                            <div class="channel-name">${channel.name}${verified}</div>
+                            <div class="channel-stats">👥 ${channel.subscribers.toLocaleString()} | 💬 Comments enabled | 🏷️ ${channel.keyword}</div>
+                            ${channel.username ? `<div class="channel-stats">@${channel.username}</div>` : ''}
+                        </div>
+                        ${channel.username ? `<a href="https://t.me/${channel.username}" target="_blank" class="channel-link">Open</a>` : ''}
+                    `;
+                    list.appendChild(item);
+                });
+            }
+
+            document.getElementById('channelsResult').style.display = 'block';
+        }
+
+        // Copy links
+        function copyAllLinks() {
+            const links = foundChannels.filter(ch => ch.username).map(ch => `https://t.me/${ch.username}`).join('\n');
+            navigator.clipboard.writeText(links).then(() => {
+                alert('✅ Скопировано!');
+                document.getElementById('channelLinks').value = links;
+            });
+        }
+
+        // Subscribe to channels
+        async function subscribeToChannels() {
+            const links = document.getElementById('channelLinks').value.split('\n').filter(l => l.trim());
+            if (links.length === 0) {
+                alert('Добавьте ссылки!');
+                return;
+            }
+
+            const btn = document.getElementById('subscribeBtnText');
+            btn.innerHTML = '<span class="loading"></span> Подписка...';
+
+            try {
+                const response = await fetch(`${API_URL}/subscribe`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ channelLinks: links, ...credentials })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('subscribeStatus', `✅ Готово! Подписано: ${data.joined}/${links.length}`, 'success');
+                    btn.textContent = '✅ Подписались';
+                }
+            } catch (error) {
+                showAlert('subscribeStatus', `❌ Ошибка: ${error.message}`, 'danger');
+                btn.textContent = '✅ Подписаться на каналы';
+            }
+        }
+
+        // Start automation
+        async function startAutomation() {
+            const channels = document.getElementById('channelLinks').value.split('\n').filter(l => l.trim());
+            const commentText = document.getElementById('commentText').value.trim();
+            const interval = parseInt(document.getElementById('commentInterval').value) || 300;
+
+            if (channels.length === 0 || !commentText) {
+                alert('Заполните все поля!');
+                return;
+            }
+
+            document.getElementById('totalChannels').textContent = channels.length;
+            document.getElementById('intervalDisplay').textContent = `${interval} сек`;
+            document.getElementById('automationStatus').textContent = '🟢 Работает';
+            document.getElementById('activityLog').style.display = 'block';
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('stopBtn').style.display = 'inline-block';
+
+            try {
+                const response = await fetch(`${API_URL}/comment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ channelLinks: channels, commentText, interval, ...credentials })
+                });
+
+                if (response.ok) {
+                    addLogEntry('🚀 Автоматизация запущена!');
+                }
+            } catch (error) {
+                alert(`Ошибка: ${error.message}`);
+            }
+        }
+
+        // Stop automation
+        async function stopAutomation() {
+            try {
+                await fetch(`${API_URL}/stop-commenting`, { method: 'POST' });
+                document.getElementById('automationStatus').textContent = '🔴 Остановлено';
+                document.getElementById('startBtn').style.display = 'inline-block';
+                document.getElementById('stopBtn').style.display = 'none';
+                addLogEntry('⏸️ Остановлено');
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        // Helper functions
+        function addLogEntry(message) {
+            const log = document.getElementById('logEntries');
+            const entry = document.createElement('div');
+            entry.className = 'channel-item';
+            entry.innerHTML = `
+                <div class="channel-info">
+                    <div class="channel-name">${message}</div>
+                    <div class="channel-stats">${new Date().toLocaleTimeString()}</div>
+                </div>
+            `;
+            log.insertBefore(entry, log.firstChild);
+        }
+
+        function showAlert(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            element.style.display = 'block';
+        }
+
+        function nextStep(step) {
+            currentStep = step;
+            updateSteps();
+        }
+
+        function prevStep(step) {
+            currentStep = step;
+            updateSteps();
+        }
+
+        function updateSteps() {
+            document.querySelectorAll('.step-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`step${currentStep}`).classList.add('active');
+
+            document.querySelectorAll('.step').forEach((step, index) => {
+                const stepNum = index + 1;
+                step.classList.remove('active', 'completed');
+                if (stepNum === currentStep) {
+                    step.classList.add('active');
+                } else if (stepNum < currentStep) {
+                    step.classList.add('completed');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
